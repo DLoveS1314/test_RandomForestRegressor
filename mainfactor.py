@@ -8,7 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 from save_model import *
 import time
 import os
-def dataprocess(path,metircs,usearea=False,usenorm=False):
+def dataprocess_fac(path,metircs,usearea=False,usenorm=False):
     # path ='/home/dls/data/openmmlab/test_RandomForestRegressor/processdata/FULLER4D_6_process.csv'
     # path ='/home/dls/data/openmmlab/test_RandomForestRegressor/processdata/FULLER4H_6_process.csv'
     # path ='/home/dls/data/openmmlab/test_RandomForestRegressor/processdata/FULLER4T_6_process.csv'
@@ -24,16 +24,14 @@ def dataprocess(path,metircs,usearea=False,usenorm=False):
     'f1s_norm',
     'precisions',
     'precisions_norm']
-    x_name = [name for name in data.columns if name not in data_y_name]
-    data_x =  data[x_name]
-    data_y =  data[metircs]
-    if usearea:
-        namefilter =[name for name in data_x.columns if (('norm'in name) and ('_ir' not in name)  ) ]
+    namefilter  = [name for name in data.columns if name not in data_y_name]
 
-    else :
-        namefilter =[name for name in data_x.columns if (('norm'in name) and ('_ir' not in name) and ('_area' not in name)) ]
-    data_x = data_x[namefilter]##loc 去除方差行 选择多列和多行
+    data_x = data [namefilter]##loc 去除方差行 选择多列和多行
+    data_y =  data[metircs]
+    print('namefilter',namefilter)
+    print('data',data.columns)
     print('x',data_x.columns)
+
     print('y',data_y .name)
     # exit()
     # need_name = ['area','per','zsc','disminmax','disavg','angleminmax','angleavg','csdminmax','csdavg','precisions' ]
@@ -45,10 +43,7 @@ def dataprocess(path,metircs,usearea=False,usenorm=False):
     X_train, X_test, y_train, y_test = train_test_split(data_x, data_y, test_size=0.2, random_state=1997317)
     if usenorm :
         X_train, X_test, y_train, y_test = train_test_split(df_normalized, data_y, test_size=0.2, random_state=1997317)
-    X_train.to_csv('./data/X_train.csv',index=False)
-    X_test.to_csv('./data/X_test.csv',index=False)
-    y_train.to_csv('./data/y_train.csv',index=False)
-    y_test.to_csv('./data/y_test.csv',index=False)
+    
     return X_train, X_test, y_train, y_test
 # 加载数据集
 def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',usenorm=False):
@@ -82,7 +77,7 @@ def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',useno
     #                                   subsample=0.8, max_depth=3, validation_fraction=0.2, n_iter_no_change=5, tol=0.0001, random_state=42, verbose=1)
     # 初始化梯度提升树回归器
     # mdoel =  RandomForestRegressor(random_state=19960229)
-    X_train, X_test, y_train, y_test = dataprocess(path=path,metircs=metircs,usearea=usearea,usenorm=usenorm)
+    X_train, X_test, y_train, y_test = dataprocess_fac(path=path,metircs=metircs,usearea=usearea,usenorm=usenorm)
     
     # 网格搜索
     grid_search = GridSearchCV(model, param_grid=param_grid, cv=5, n_jobs=-1, verbose=0,return_train_score=True)
@@ -132,7 +127,7 @@ def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',useno
         f.write(f'use norm{usenorm} ')
         # 输出R2和RMSE
         print(strval)
-        print('R2 score: {:.2f}'.format(r2))
+        print('R2 score: {:.3f}'.format(r2))
         print('RMSE: {:.2f}'.format(rmse))
 
     # # 保存权重
@@ -172,58 +167,13 @@ def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',useno
     # # 输出最佳参数和最佳模型的性能
     # print('Best params:', grid_search.best_params_)
     # print('Best score:', -grid_search.best_score_)
-def maingbt(usearea):
-    # path ='/home/dls/data/openmmlab/test_RandomForestRegressor/merge.csv'
-    path = '/home/dls/data/openmmlab/test_RandomForestRegressor/merge_all.csv'
-    gbt =  GradientBoostingRegressor(random_state=1997317)
-    # 定义参数空间 把早停放进去
-    param_grid = {
-        'learning_rate': [0.05, 0.01,0.02],
-        'n_estimators': [ 500,1000,2000,5000],
 
-        'max_depth': [3, 4, 5,6,7,8],
-        'min_samples_split':[ 10,50,100],
-        # 'n_iter_no_change': [5, 10, None]
-    }
-    metircs='f1s_norm'
-    run(path,model=gbt,param_grid=param_grid,metircs=metircs,usearea=usearea)
-def mainrf(usearea):
-    # path ='/home/dls/data/openmmlab/test_RandomForestRegressor/merge.csv'
-    path = '/home/dls/data/openmmlab/test_RandomForestRegressor/merge_all.csv'
-    rf =  RandomForestRegressor(random_state=1997317)
-    param_grid = {
-        'n_estimators': [500,1000,2000],
-        'max_depth': [    None],
-        'min_samples_split': [1,2 ,4 ,10 ],
-        'min_samples_leaf': [1, 2,4  ,10  ],
-        'max_features': ['sqrt', 'log2', None],
-    }
-    metircs='f1s_norm'
-    run(path,model=rf,param_grid=param_grid,metircs=metircs,usearea=usearea)
-def mainabr(usearea):
-    from sklearn.tree import DecisionTreeRegressor 
-    from sklearn.linear_model import LinearRegression
-    # n_estimators：弱学习器的数量。
-    # learning_rate：学习率，每个弱学习器的权重缩减系数。
-    # loss：误差计算方法，可以选择linear、square或exponential。
-    # base_estimator：弱学习器的基础模型，可以选择决策树模型或其他模型。
-    # random_state：随机数种子，控制随机过程的复现性。
-        # path ='/home/dls/data/openmmlab/test_RandomForestRegressor/merge.csv'
-    path = '/home/dls/data/openmmlab/test_RandomForestRegressor/merge_all.csv'
-    abr =  AdaBoostRegressor(random_state=1997317)
-    param_grid = {'n_estimators': [   1000,3000,5000],
-              'learning_rate': [0.02,0.01, 0.05],
-              'loss': ['linear', 'square', 'exponential'],
-              'estimator': [DecisionTreeRegressor(), LinearRegression() ]
-            #   'estimator': [  RandomForestRegressor() ]
-              }
-
-    metircs='f1s_norm'
-    run(path,model=abr,param_grid=param_grid,metircs=metircs,usearea=usearea)
-def mainxboost(usearea,path):
+def mainxboost_factor(usearea):#使用因子分析计算机器学习
     import xgboost as xgb
+    namefile ='factor_noarea'
     # 设置 XGBoost 模型的参数空间
-   
+    # path = '/home/dls/data/openmmlab/test_RandomForestRegressor/score_factor.csv'
+    path ='/home/dls/data/openmmlab/test_RandomForestRegressor/score_factor_noarea.csv'
     # define XGBoost model
     model = xgb.XGBRegressor(
         objective='reg:squarederror',
@@ -231,14 +181,14 @@ def mainxboost(usearea,path):
         random_state=1997317
     )
     param_grid = {
-        'max_depth': [ 7,10,None ],
+        'max_depth': [ 7,10 ],
         'learning_rate': [0.05,0.01, 0.03 ],
         # 'booster':['gbtree','gblinear'],
         'n_estimators': [ 150,300,500 ],
         'subsample': [ 0.8, 0.9],
         'colsample_bytree': [ 0.8, 0.9],
         'gamma': [0, 0.1 ],
-        'reg_alpha': [0, 1e-5,1e-4, 1e-3],
+        'reg_alpha': [0, 1e-5, 1e-3],
         'reg_lambda': [0, 1e-5, 1e-3,1e-4,1e-2],
         # 'gpu_id ':[0]
     }
@@ -254,9 +204,8 @@ def mainxboost(usearea,path):
     #     # 'reg_lambda': [0, 1e-5, 1e-3]
     # }
     metircs='f1s_norm'
-    namefile='largeb60'
-    run(path,model=model,param_grid=param_grid,metircs=metircs,usearea=usearea,namefile=namefile)
-
+    usenorm =True
+    run(path,model=model,param_grid=param_grid,metircs=metircs,usearea=usearea,namefile=namefile,usenorm=usenorm)
 if __name__ == '__main__':
 
     # mainrf()
@@ -267,7 +216,5 @@ if __name__ == '__main__':
     #     mainrf(usearea)
     # for usearea in [False,True]:
     #     mainabr(usearea)
-    # path = '/home/dls/data/openmmlab/test_RandomForestRegressor/merge_all.csv'
-    path = '/home/dls/data/openmmlab/test_RandomForestRegressor/large_samples_b60_all.csv'
-    for usearea in [True ,False]:
-        mainxboost(usearea,path)
+    for usearea in [True ]:
+        mainxboost_factor(usearea)
