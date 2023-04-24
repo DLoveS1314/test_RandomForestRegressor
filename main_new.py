@@ -68,7 +68,7 @@ def run( model,param_grid,data  ):
 
     # csv_name = basename+f'{timestamp}_{round(r2,3)}.csv'
 
-    return grid_search ,r2 ,rmse
+    return grid_search ,r2 ,rmse,best_rf
 
 
     # # 保存权重
@@ -147,7 +147,7 @@ def mainxboost(usearea,path,tag='largeb60', metircs='f1s_norm',  usenorm = True)
 
 
     print('running...')
-    grid_search ,r2 ,rmse = run(model=model,param_grid=param_grid,data=data )
+    grid_search ,r2 ,rmse,best_rf = run(model=model,param_grid=param_grid,data=data )
 
     modelpath = '/home/dls/data/openmmlab/test_RandomForestRegressor/bestmodel'
     os.makedirs(modelpath,exist_ok=True)
@@ -184,9 +184,16 @@ def mainxboost(usearea,path,tag='largeb60', metircs='f1s_norm',  usenorm = True)
 
     # 保存grid search
     model_name = basename+f'_{round(r2,3)}_{timestamp}.pkl'
+    gs_name = basename+f'_gs_{round(r2,3)}_{timestamp}.pkl'
+
     model_name = os.path.join(modelpath, model_name)
+    gs_name = os.path.join(modelpath, gs_name)
     print(f'model_name {model_name}')
-    save_grid_search(grid_search,model_name)
+    print(f'gs_name {gs_name}')
+
+    save_grid_search(best_rf,model_name)
+    save_grid_search(grid_search,gs_name)
+
 if __name__ == '__main__':
 
     # mainrf()
@@ -201,6 +208,6 @@ if __name__ == '__main__':
     # path = '/home/dls/data/openmmlab/test_RandomForestRegressor/large_samples_b60_all.csv'
     tag = ''
     metircs='f1s_norm'
-    usenorm = True
+    usenorm = False
     for usearea in [ False]:
         mainxboost(usearea,path,tag=tag,metircs=metircs,usenorm=usenorm)
