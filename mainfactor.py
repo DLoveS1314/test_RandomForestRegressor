@@ -42,11 +42,11 @@ def dataprocess_fac(path,metircs,usearea=False,usenorm=False):
     # X_train, X_test, y_train, y_test = train_test_split(df_normalized, data_y, test_size=0.2, random_state=19960229)
     X_train, X_test, y_train, y_test = train_test_split(data_x, data_y, test_size=0.2, random_state=1997317)
     if usenorm :
-        X_train, X_test, y_train, y_test = train_test_split(df_normalized, data_y, test_size=0.2, random_state=1997317)
+        X_train, X_test, y_train, y_test = train_test_split(df_normalized, data_y, test_size=0.1, random_state=1997317)
     
     return X_train, X_test, y_train, y_test
 # 加载数据集
-def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',usenorm=False):
+def run(path,model,param_grid ,savepath):
     # 梯度提升树
     # GradientBoostingRegressor是一种基于决策树的梯度提升算法，可以用于回归问题。下面是一些可能需要调整的重要参数：
 
@@ -77,7 +77,12 @@ def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',useno
     #                                   subsample=0.8, max_depth=3, validation_fraction=0.2, n_iter_no_change=5, tol=0.0001, random_state=42, verbose=1)
     # 初始化梯度提升树回归器
     # mdoel =  RandomForestRegressor(random_state=19960229)
-    X_train, X_test, y_train, y_test = dataprocess_fac(path=path,metircs=metircs,usearea=usearea,usenorm=usenorm)
+    data = pd.read_csv(path)
+    namex = data.columns[:-1]
+    namey = data.columns[-1]
+    print('namex',namex)
+    print('namey',namey)
+    X_train, X_test, y_train, y_test = train_test_split(data[namex], data[namey], test_size=0.2, random_state=19970317)
     
     # 网格搜索
     grid_search = GridSearchCV(model, param_grid=param_grid, cv=5, n_jobs=-1, verbose=0,return_train_score=True)
@@ -87,10 +92,7 @@ def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',useno
     # name = 'rf_grid_sea.pkl'
     timestamp =  time.time()
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(timestamp ))
-    if usearea:
-        basename = f'{model.__class__}_usearea_{namefile}'.split('.')[-1]
-    else:
-        basename = f'{model.__class__}_noarea_{namefile}'.split('.')[-1]
+    basename = f'{model.__class__}'.split('.')[-1]
 
 
     # 用最佳参数组合训练模型
@@ -107,7 +109,8 @@ def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',useno
     csv_name = basename+f'{timestamp}_{round(r2,3)}.csv'
 
   
-    modelpath = '/home/dls/data/openmmlab/test_RandomForestRegressor/bestmodel'
+    modelpath = savepath
+
     namepath = os.path.join(modelpath, search_name)
     save_grid_search(grid_search,namepath)
     df =pd.DataFrame.from_dict(grid_search.cv_results_)
@@ -124,11 +127,10 @@ def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',useno
         f.write(strval2)
         f.write(str(X_train.columns))
         f.write(str(y_train.name))
-        f.write(f'use norm{usenorm} ')
-        # 输出R2和RMSE
-        print(strval)
-        print('R2 score: {:.3f}'.format(r2))
-        print('RMSE: {:.2f}'.format(rmse))
+    # 输出R2和RMSE
+    print(strval)
+    print('R2 score: {:.3f}'.format(r2))
+    print('RMSE: {:.2f}'.format(rmse))
 
     # # 保存权重
     # import joblib
@@ -168,17 +170,17 @@ def run(path,model,param_grid,metircs='f1s_norm',usearea=False,namefile='',useno
     # print('Best params:', grid_search.best_params_)
     # print('Best score:', -grid_search.best_score_)
 
-def mainxboost_factor(usearea):#使用因子分析计算机器学习
+def mainxboost_factor():#使用因子分析计算机器学习
     import xgboost as xgb
     namefile ='factor_noarea'
     # 设置 XGBoost 模型的参数空间
     # path = '/home/dls/data/openmmlab/test_RandomForestRegressor/score_factor.csv'
-    path ='/home/dls/data/openmmlab/test_RandomForestRegressor/score_factor_noarea.csv'
+    path ='/home/dls/data/openmmlab/test_RandomForestRegressor/calrel/calrelout.csv'
     # define XGBoost model
     model = xgb.XGBRegressor(
         objective='reg:squarederror',
         n_jobs=-1,
-        random_state=1997317
+        random_state=19970317
     )
     param_grid = {
         'max_depth': [ 7,10 ],
@@ -203,9 +205,8 @@ def mainxboost_factor(usearea):#使用因子分析计算机器学习
     #     'reg_alpha': [0, 1e-5, 1e-3],
     #     # 'reg_lambda': [0, 1e-5, 1e-3]
     # }
-    metircs='f1s_norm'
-    usenorm =True
-    run(path,model=model,param_grid=param_grid,metircs=metircs,usearea=usearea,namefile=namefile,usenorm=usenorm)
+    savepath = '/home/dls/data/openmmlab/test_RandomForestRegressor/bestmodel'
+    run(path,model=model,param_grid=param_grid,savepath=savepath )
 if __name__ == '__main__':
 
     # mainrf()
@@ -216,5 +217,5 @@ if __name__ == '__main__':
     #     mainrf(usearea)
     # for usearea in [False,True]:
     #     mainabr(usearea)
-    for usearea in [True ]:
-        mainxboost_factor(usearea)
+ 
+    mainxboost_factor( )
